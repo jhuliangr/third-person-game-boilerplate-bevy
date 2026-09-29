@@ -9,6 +9,7 @@ publish.workspace = true
 bevy.workspace = true
 gf_core.workspace = true
 gf_input.workspace = true
+gf_render.workspace = true
 
 [lints]
 workspace = true
