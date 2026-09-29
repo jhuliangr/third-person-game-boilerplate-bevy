@@ -142,3 +142,13 @@ stored, the preset is derived from them. Changes apply immediately.
 
 The pause menu has tabs (Game, Graphics). Every button carries a `MenuAction` component and
 a single system handles presses, so new tabs and options are data, not new systems.
+
+## 021 — Menu navigation with keyboard and gamepad
+
+- **Alternative:** moving focus button by button in four directions.
+- **Why:** row-based focus is faster with a gamepad: up/down selects a row, left/right
+  changes its value directly, confirm activates buttons and LB/RB switch tabs. Menu input is
+  its own set of actions in the `Menu` context (`Navigate`, `Confirm`, `NextTab`,
+  `PreviousTab`, `Back`), so it only exists while paused. `Navigate` uses a `Pulse`
+  condition on real time, so holding a direction repeats even though game time is paused.
+  The focus follows the mouse when hovering a row, so all input methods can be mixed.

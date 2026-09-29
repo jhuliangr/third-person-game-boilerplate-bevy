@@ -33,7 +33,17 @@ The first build compiles Bevy and takes several minutes; later builds are increm
 
 ## Pause menu
 
-Press Esc to open it. The **Game** tab quits the game. The **Graphics** tab switches between
+Press Esc (or Start) to open it. It works with mouse, keyboard and gamepad:
+
+| Action          | Keyboard        | Gamepad          |
+|-----------------|-----------------|------------------|
+| Select row      | Up / Down       | D-pad / stick    |
+| Change value    | Left / Right    | D-pad / stick    |
+| Confirm         | Enter / Space   | South (A / ✕)    |
+| Switch tab      | Q / E, Tab      | LB / RB          |
+| Resume          | Esc             | East (B / ○), Start |
+
+The **Game** tab quits the game. The **Graphics** tab switches between
 the Low, Medium and High presets or tunes shadows, anti-aliasing and vsync individually.
 Changes apply instantly and are saved to `%APPDATA%\game-foundation\graphics.ron`.
 
