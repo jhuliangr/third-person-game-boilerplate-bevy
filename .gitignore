@@ -1,0 +1,14 @@
+/target
+**/*.rs.bk
+
+# Blender autosaves and backups
+*.blend1
+*.blend2
+*.blend@
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
