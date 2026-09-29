@@ -1,0 +1,29 @@
+[package]
+name = "gf_app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "game"
+path = "src/main.rs"
+
+[features]
+dev = ["bevy/dynamic_linking", "bevy/dev", "gf_physics/debug"]
+
+[dependencies]
+bevy.workspace = true
+gf_core.workspace = true
+gf_input.workspace = true
+gf_physics.workspace = true
+gf_character.workspace = true
+gf_animation.workspace = true
+gf_player.workspace = true
+gf_camera.workspace = true
+gf_ui.workspace = true
+gf_world.workspace = true
+gf_render.workspace = true
+
+[lints]
+workspace = true
