@@ -7,6 +7,8 @@ publish.workspace = true
 
 [dependencies]
 bevy.workspace = true
+serde.workspace = true
+gf_settings.workspace = true
 
 [lints]
 workspace = true

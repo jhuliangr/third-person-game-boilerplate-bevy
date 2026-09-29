@@ -4,7 +4,7 @@ use bevy::{
     app::PluginGroupBuilder,
     gltf::{GltfPlugin, convert_coordinates::GltfConvertCoordinates},
     prelude::*,
-    window::{PresentMode, WindowResolution},
+    window::WindowResolution,
 };
 
 fn main() -> AppExit {
@@ -15,7 +15,6 @@ fn main() -> AppExit {
                 primary_window: Some(Window {
                     title: "Game Foundation".into(),
                     resolution: WindowResolution::new(1280, 720),
-                    present_mode: PresentMode::AutoVsync,
                     ..default()
                 }),
                 ..default()
@@ -44,6 +43,9 @@ impl PluginGroup for GamePlugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
             .add(gf_core::CorePlugin)
+            .add(gf_settings::SettingsPlugin {
+                app_name: "game-foundation",
+            })
             .add(gf_render::RenderPlugin)
             .add(gf_input::InputPlugin)
             .add(gf_physics::PhysicsPlugin)

@@ -15,6 +15,7 @@ dev = ["bevy/dynamic_linking", "bevy/dev", "gf_physics/debug"]
 [dependencies]
 bevy.workspace = true
 gf_core.workspace = true
+gf_settings.workspace = true
 gf_input.workspace = true
 gf_physics.workspace = true
 gf_character.workspace = true
