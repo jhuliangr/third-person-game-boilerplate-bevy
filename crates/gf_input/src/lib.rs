@@ -77,8 +77,27 @@ pub struct Pause;
 #[action_output(bool)]
 pub struct Back;
 
+/// Menu focus movement. Fires once on press, then repeats while held.
+#[derive(InputAction)]
+#[action_output(Vec2)]
+pub struct Navigate;
+
+#[derive(InputAction)]
+#[action_output(bool)]
+pub struct Confirm;
+
+#[derive(InputAction)]
+#[action_output(bool)]
+pub struct NextTab;
+
+#[derive(InputAction)]
+#[action_output(bool)]
+pub struct PreviousTab;
+
 const MOUSE_RADIANS_PER_PIXEL: f32 = 0.0025;
 const STICK_RADIANS_PER_SECOND: f32 = 3.0;
+const NAVIGATE_DELAY_SECS: f32 = 0.35;
+const NAVIGATE_REPEAT_SECS: f32 = 0.12;
 
 pub fn gameplay_input() -> impl Bundle {
     (
@@ -114,10 +133,7 @@ pub fn gameplay_input() -> impl Bundle {
             (
                 Action::<Pause>::new(),
                 Press::default(),
-                ActionSettings {
-                    require_reset: true,
-                    ..default()
-                },
+                wait_for_release(),
                 bindings![KeyCode::Escape, GamepadButton::Start],
             ),
         ]),
@@ -129,18 +145,53 @@ pub fn menu_input() -> impl Bundle {
         Menu,
         ContextActivity::<Menu>::INACTIVE,
         ActiveInStates::<Menu, _>::single(PauseState::Paused),
-        actions!(
-            Menu[(
+        actions!(Menu[
+            (
                 Action::<Back>::new(),
                 Press::default(),
-                ActionSettings {
-                    require_reset: true,
-                    ..default()
-                },
+                wait_for_release(),
                 bindings![KeyCode::Escape, GamepadButton::Start, GamepadButton::East],
-            )]
-        ),
+            ),
+            (
+                Action::<Navigate>::new(),
+                Pulse::new(NAVIGATE_REPEAT_SECS)
+                    .with_initial_delay(NAVIGATE_DELAY_SECS)
+                    .with_actuation(0.5),
+                wait_for_release(),
+                Bindings::spawn((
+                    Cardinal::dpad(),
+                    Cardinal::arrows(),
+                    Axial::left_stick().with(DeadZone::default()),
+                )),
+            ),
+            (
+                Action::<Confirm>::new(),
+                Press::default(),
+                wait_for_release(),
+                bindings![KeyCode::Enter, KeyCode::Space, GamepadButton::South],
+            ),
+            (
+                Action::<NextTab>::new(),
+                Press::default(),
+                wait_for_release(),
+                bindings![KeyCode::KeyE, KeyCode::Tab, GamepadButton::RightTrigger],
+            ),
+            (
+                Action::<PreviousTab>::new(),
+                Press::default(),
+                wait_for_release(),
+                bindings![KeyCode::KeyQ, GamepadButton::LeftTrigger],
+            ),
+        ]),
     )
+}
+
+/// Ignores inputs that were already held when the context became active.
+fn wait_for_release() -> ActionSettings {
+    ActionSettings {
+        require_reset: true,
+        ..default()
+    }
 }
 
 fn grab_cursor(mut cursor: Single<&mut CursorOptions, With<PrimaryWindow>>) {
