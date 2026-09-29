@@ -1,0 +1,17 @@
+[package]
+name = "gf_player"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+bevy.workspace = true
+gf_core.workspace = true
+gf_input.workspace = true
+gf_character.workspace = true
+gf_animation.workspace = true
+gf_camera.workspace = true
+
+[lints]
+workspace = true
