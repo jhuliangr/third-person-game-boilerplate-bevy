@@ -1,8 +1,11 @@
-//! Pause menu with tabs. Add a tab by extending [`PauseTab`] and spawning its panel.
+//! Pause menu with tabs, usable with mouse, keyboard and gamepad.
+//!
+//! Add a tab by extending [`PauseTab`] and spawning its panel. Rows that can be selected
+//! with the keyboard or gamepad carry a [`Focusable`] with a contiguous `order` per tab.
 
 use bevy::prelude::*;
 use gf_core::PauseState;
-use gf_input::{Back, Pause, Start, menu_input};
+use gf_input::{Back, Confirm, Fire, Navigate, NextTab, Pause, PreviousTab, Start, menu_input};
 use gf_render::{AntiAliasing, GraphicsPreset, GraphicsSettings, ShadowQuality};
 
 use crate::widgets::{
@@ -12,22 +15,33 @@ use crate::widgets::{
 
 pub(crate) fn plugin(app: &mut App) {
     app.init_resource::<PauseTab>()
+        .init_resource::<MenuFocus>()
         .add_systems(Startup, spawn_menu_input)
-        .add_systems(OnEnter(PauseState::Paused), spawn_pause_menu)
+        .add_systems(OnEnter(PauseState::Paused), (reset_focus, spawn_pause_menu))
         .add_systems(
             Update,
             (
-                handle_actions,
+                handle_clicks,
+                focus_follows_mouse,
+                reset_focus.run_if(resource_changed::<PauseTab>),
                 show_active_tab,
                 refresh_option_values,
                 button_colors,
+                focus_highlight,
             )
                 .chain()
                 .run_if(in_state(PauseState::Paused)),
         )
         .add_observer(open_pause_menu)
-        .add_observer(close_pause_menu);
+        .add_observer(close_pause_menu)
+        .add_observer(navigate)
+        .add_observer(confirm)
+        .add_observer(next_tab)
+        .add_observer(previous_tab);
 }
+
+const HINTS: &str =
+    "Arrows / D-pad: navigate    Enter / A: select    Q E / LB RB: tabs    Esc / B: resume";
 
 #[derive(Resource, Debug, Default, Clone, Copy, PartialEq, Eq)]
 enum PauseTab {
@@ -35,6 +49,14 @@ enum PauseTab {
     Game,
     Graphics,
 }
+
+impl PauseTab {
+    const ALL: [Self; 2] = [Self::Game, Self::Graphics];
+}
+
+/// Position of the selected row within the active tab.
+#[derive(Resource, Debug, Default)]
+struct MenuFocus(usize);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum GraphicsOption {
@@ -45,6 +67,8 @@ enum GraphicsOption {
 }
 
 impl GraphicsOption {
+    const ALL: [Self; 4] = [Self::Preset, Self::Shadows, Self::AntiAliasing, Self::VSync];
+
     fn label(self) -> &'static str {
         match self {
             Self::Preset => "Preset",
@@ -89,6 +113,22 @@ enum MenuAction {
     Step(GraphicsOption, i32),
 }
 
+/// A row that keyboard and gamepad navigation can select.
+#[derive(Component, Debug, Clone, Copy)]
+struct Focusable {
+    tab: PauseTab,
+    order: usize,
+    target: FocusTarget,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum FocusTarget {
+    /// Confirm triggers the action.
+    Action(MenuAction),
+    /// Left/right change the value, confirm steps it forward.
+    Option(GraphicsOption),
+}
+
 #[derive(Component)]
 struct TabPanel(PauseTab);
 
@@ -108,6 +148,28 @@ fn cycle<T: Copy + PartialEq>(all: &[T], current: T, step: i32) -> T {
     wrap(all, index as i32 + step)
 }
 
+fn perform(
+    action: MenuAction,
+    tab: &mut PauseTab,
+    settings: &mut GraphicsSettings,
+    exit: &mut MessageWriter<AppExit>,
+) {
+    match action {
+        MenuAction::Quit => {
+            exit.write(AppExit::Success);
+        }
+        MenuAction::OpenTab(new_tab) => *tab = new_tab,
+        MenuAction::Step(option, step) => option.step(settings, step),
+    }
+}
+
+fn focused(tab: PauseTab, focus: &MenuFocus, focusables: &Query<&Focusable>) -> Option<Focusable> {
+    focusables
+        .iter()
+        .find(|item| item.tab == tab && item.order == focus.0)
+        .copied()
+}
+
 fn spawn_menu_input(mut commands: Commands) {
     commands.spawn((Name::new("MenuInput"), menu_input()));
 }
@@ -118,6 +180,56 @@ fn open_pause_menu(_: On<Start<Pause>>, mut next: ResMut<NextState<PauseState>>)
 
 fn close_pause_menu(_: On<Start<Back>>, mut next: ResMut<NextState<PauseState>>) {
     next.set(PauseState::Running);
+}
+
+fn navigate(
+    input: On<Fire<Navigate>>,
+    tab: Res<PauseTab>,
+    mut focus: ResMut<MenuFocus>,
+    mut settings: ResMut<GraphicsSettings>,
+    focusables: Query<&Focusable>,
+) {
+    let direction = input.value;
+    if direction.y.abs() >= direction.x.abs() {
+        let count = focusables.iter().filter(|item| item.tab == *tab).count();
+        if count > 0 {
+            let step = if direction.y > 0.0 { -1 } else { 1 };
+            focus.0 = (focus.0 as i32 + step).rem_euclid(count as i32) as usize;
+        }
+    } else if let Some(Focusable {
+        target: FocusTarget::Option(option),
+        ..
+    }) = focused(*tab, &focus, &focusables)
+    {
+        option.step(&mut settings, direction.x.signum() as i32);
+    }
+}
+
+fn confirm(
+    _: On<Start<Confirm>>,
+    mut tab: ResMut<PauseTab>,
+    focus: Res<MenuFocus>,
+    mut settings: ResMut<GraphicsSettings>,
+    mut exit: MessageWriter<AppExit>,
+    focusables: Query<&Focusable>,
+) {
+    match focused(*tab, &focus, &focusables).map(|item| item.target) {
+        Some(FocusTarget::Action(action)) => perform(action, &mut tab, &mut settings, &mut exit),
+        Some(FocusTarget::Option(option)) => option.step(&mut settings, 1),
+        None => {}
+    }
+}
+
+fn next_tab(_: On<Start<NextTab>>, mut tab: ResMut<PauseTab>) {
+    *tab = cycle(&PauseTab::ALL, *tab, 1);
+}
+
+fn previous_tab(_: On<Start<PreviousTab>>, mut tab: ResMut<PauseTab>) {
+    *tab = cycle(&PauseTab::ALL, *tab, -1);
+}
+
+fn reset_focus(mut focus: ResMut<MenuFocus>) {
+    focus.0 = 0;
 }
 
 fn spawn_pause_menu(mut commands: Commands) {
@@ -139,7 +251,7 @@ fn spawn_pause_menu(mut commands: Commands) {
                 BackgroundColor(PANEL),
                 children![tab_bar(), game_panel(), graphics_panel()],
             ),
-            colored_label("Esc to resume", 18.0, MUTED_TEXT),
+            colored_label(HINTS, 16.0, MUTED_TEXT),
         ],
     ));
 }
@@ -149,9 +261,11 @@ fn tab_bar() -> impl Bundle {
         Node {
             column_gap: px(8),
             justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
             ..default()
         },
         children![
+            colored_label("LB", 16.0, MUTED_TEXT),
             button("Game", 140.0, 40.0, MenuAction::OpenTab(PauseTab::Game)),
             button(
                 "Graphics",
@@ -159,6 +273,7 @@ fn tab_bar() -> impl Bundle {
                 40.0,
                 MenuAction::OpenTab(PauseTab::Graphics)
             ),
+            colored_label("RB", 16.0, MUTED_TEXT),
         ],
     )
 }
@@ -169,8 +284,8 @@ fn panel(tab: PauseTab) -> impl Bundle {
         Node {
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
-            row_gap: px(10),
-            min_height: px(200),
+            row_gap: px(6),
+            min_height: px(220),
             justify_content: JustifyContent::Center,
             ..default()
         },
@@ -180,30 +295,53 @@ fn panel(tab: PauseTab) -> impl Bundle {
 fn game_panel() -> impl Bundle {
     (
         panel(PauseTab::Game),
-        children![button("Quit", 220.0, 52.0, MenuAction::Quit)],
+        children![button(
+            "Quit",
+            220.0,
+            52.0,
+            (
+                MenuAction::Quit,
+                Focusable {
+                    tab: PauseTab::Game,
+                    order: 0,
+                    target: FocusTarget::Action(MenuAction::Quit),
+                },
+            )
+        )],
     )
 }
 
 fn graphics_panel() -> impl Bundle {
+    let [preset, shadows, anti_aliasing, vsync] = GraphicsOption::ALL;
     (
         panel(PauseTab::Graphics),
         children![
-            option_row(GraphicsOption::Preset),
-            option_row(GraphicsOption::Shadows),
-            option_row(GraphicsOption::AntiAliasing),
-            option_row(GraphicsOption::VSync),
+            option_row(preset, 0),
+            option_row(shadows, 1),
+            option_row(anti_aliasing, 2),
+            option_row(vsync, 3),
         ],
     )
 }
 
-fn option_row(option: GraphicsOption) -> impl Bundle {
+fn option_row(option: GraphicsOption, order: usize) -> impl Bundle {
     (
+        Focusable {
+            tab: PauseTab::Graphics,
+            order,
+            target: FocusTarget::Option(option),
+        },
+        Interaction::default(),
         Node {
             width: percent(100),
             align_items: AlignItems::Center,
             column_gap: px(8),
+            padding: UiRect::axes(px(8), px(3)),
+            border: UiRect::all(px(2)),
+            border_radius: BorderRadius::all(px(6)),
             ..default()
         },
+        BorderColor::all(Color::NONE),
         children![
             (
                 label(option.label(), 20.0),
@@ -230,22 +368,26 @@ fn option_row(option: GraphicsOption) -> impl Bundle {
     )
 }
 
-fn handle_actions(
+fn handle_clicks(
     buttons: Query<(&Interaction, &MenuAction), Changed<Interaction>>,
     mut tab: ResMut<PauseTab>,
     mut settings: ResMut<GraphicsSettings>,
     mut exit: MessageWriter<AppExit>,
 ) {
     for (interaction, action) in &buttons {
-        if *interaction != Interaction::Pressed {
-            continue;
+        if *interaction == Interaction::Pressed {
+            perform(*action, &mut tab, &mut settings, &mut exit);
         }
-        match *action {
-            MenuAction::Quit => {
-                exit.write(AppExit::Success);
-            }
-            MenuAction::OpenTab(new_tab) => *tab = new_tab,
-            MenuAction::Step(option, step) => option.step(&mut settings, step),
+    }
+}
+
+fn focus_follows_mouse(
+    mut focus: ResMut<MenuFocus>,
+    hovered: Query<(&Interaction, &Focusable), Changed<Interaction>>,
+) {
+    for (interaction, item) in &hovered {
+        if *interaction != Interaction::None {
+            focus.0 = item.order;
         }
     }
 }
@@ -289,8 +431,24 @@ fn button_colors(
                 _ => BUTTON_IDLE,
             },
         };
-        if background.0 != color {
-            background.0 = color;
-        }
+        background.set_if_neq(BackgroundColor(color));
+    }
+}
+
+fn focus_highlight(
+    tab: Res<PauseTab>,
+    focus: Res<MenuFocus>,
+    mut items: Query<(&Focusable, &mut BorderColor)>,
+) {
+    for (item, mut border) in &mut items {
+        let color = if item.tab == *tab && item.order == focus.0 {
+            BUTTON_ACTIVE
+        } else {
+            match item.target {
+                FocusTarget::Action(_) => MUTED_TEXT,
+                FocusTarget::Option(_) => Color::NONE,
+            }
+        };
+        border.set_if_neq(BorderColor::all(color));
     }
 }
