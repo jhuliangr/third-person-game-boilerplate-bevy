@@ -20,6 +20,7 @@
 |----------------|-----------------------------------------------------------------------------|
 | `gf_app`       | Binary. Window and engine settings, `GamePlugins` group, `dev` feature.     |
 | `gf_core`      | `AppState`, `PauseState`, `GameplaySystems` sets, `LoadingQueue`, `PlayerSpawn`. |
+| `gf_settings`  | Loads and saves settings resources as RON files in the user's config folder. |
 | `gf_input`     | Input contexts (`Gameplay`, `Menu`), actions and default bindings, cursor grab. |
 | `gf_physics`   | Avian setup, `GameLayer` collision layers, debug gizmos.                    |
 | `gf_character` | Kinematic character controller: `MoveIntent` → movement, crouch, `Locomotion`. |
@@ -27,8 +28,8 @@
 | `gf_camera`    | Orbit camera with collision around a `CameraTarget`.                        |
 | `gf_player`    | Spawns the player and bridges input → intent and locomotion → animation.   |
 | `gf_world`     | Loads the level `.glb`, builds static colliders, marks spawn points, lighting. |
-| `gf_render`    | `GraphicsQuality` presets applied to cameras and lights.                   |
-| `gf_ui`        | Loading screen and pause menu.                                              |
+| `gf_render`    | `GraphicsSettings` (preset + shadows, anti-aliasing, vsync) applied to cameras, lights and the window. |
+| `gf_ui`        | Loading screen and tabbed pause menu (Game, Graphics).                      |
 
 ### Dependency graph
 
@@ -41,8 +42,8 @@ gf_player ──► gf_character ──► gf_physics
     │                 ──► gf_physics
     └────► gf_input, gf_core
 gf_world ──► gf_physics, gf_core
-gf_ui    ──► gf_input, gf_core
-gf_render      (bevy only)
+gf_ui    ──► gf_render, gf_input, gf_core
+gf_render ──► gf_settings
 gf_animation   (bevy only)
 ```
 

@@ -117,11 +117,37 @@ shared `LocomotionAnimations` component.
 Use Blender custom properties (exported as glTF extras) to mark triggers, pickups or
 doors, and read them with Bevy's `GltfExtras` component.
 
-## Add a settings menu
+## Add persistent settings
 
-- Graphics: change the `GraphicsQuality` resource; cameras and lights update automatically.
-- Controls: change `InputSettings` (sensitivity, invert Y) or respawn contexts with new bindings.
-- Persist settings with `serde` + a RON file, loaded in `Startup` before other plugins read them.
+Derive `Serialize`, `Deserialize` and `Default` on a resource and register it from its
+crate's plugin (after `SettingsPlugin` in `GamePlugins`):
+
+```rust
+#[derive(Resource, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct AudioSettings {
+    pub master_volume: f32,
+}
+
+app.register_settings::<AudioSettings>("audio");
+```
+
+It is loaded from `%APPDATA%\game-foundation\audio.ron` at startup and saved whenever it
+changes. `#[serde(default)]` keeps old files valid when fields are added. `InputSettings`
+(sensitivity, invert Y) can be persisted the same way.
+
+## Add a pause menu tab or option
+
+All of it lives in `gf_ui/src/pause_menu.rs`:
+
+1. **New tab:** add a variant to `PauseTab`, a tab button in `tab_bar()` and a panel built
+   with `panel(PauseTab::YourTab)` inside `spawn_pause_menu`.
+2. **New option:** add a variant to the options enum (like `GraphicsOption`) with its
+   `label`, `value` and `step`, then add an `option_row(...)` to the panel. The arrows,
+   value refresh and saving work automatically.
+3. **New button:** add a variant to `MenuAction` and handle it in `handle_actions`.
+
+Reusable pieces (`button`, `label`, palette) are in `gf_ui/src/widgets.rs`.
 
 ## Add audio
 

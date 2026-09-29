@@ -31,6 +31,12 @@ The first build compiles Bevy and takes several minutes; later builds are increm
 | Crouch (hold) | Left Ctrl        | East (B / ○)     |
 | Pause menu    | Esc              | Start            |
 
+## Pause menu
+
+Press Esc to open it. The **Game** tab quits the game. The **Graphics** tab switches between
+the Low, Medium and High presets or tunes shadows, anti-aliasing and vsync individually.
+Changes apply instantly and are saved to `%APPDATA%\game-foundation\graphics.ron`.
+
 ## Project layout
 
 ```

@@ -7,14 +7,16 @@ Target: run smoothly on low-end PCs, meaning any DX12/Vulkan-capable integrated 
 
 ### Rendering
 
-- `GraphicsQuality::Low` is the default (`gf_render`):
+- The `Low` graphics preset is the default (`gf_render`). Players can change it, or each
+  option individually, from the pause menu's Graphics tab:
 
-  | Setting            | Low       | Medium    | High        |
-  |--------------------|-----------|-----------|-------------|
-  | MSAA               | off       | off       | 4x          |
-  | FXAA               | off       | on        | off         |
-  | Shadow map         | 1024²     | 2048²     | 4096²       |
-  | Shadow cascades    | 1 (25 m)  | 2 (40 m)  | 4 (80 m)    |
+  | Preset | Shadows                    | Anti-aliasing | VSync |
+  |--------|----------------------------|---------------|-------|
+  | Low    | Low (1024², 1 cascade)     | Off           | On    |
+  | Medium | Medium (2048², 2 cascades) | FXAA          | On    |
+  | High   | High (4096², 4 cascades)   | MSAA 4x       | On    |
+
+  Shadows can also be turned off entirely for the weakest GPUs.
 
 - No HDR, bloom, SSAO, SSR, volumetrics or other post-processing.
 - VSync (`PresentMode::AutoVsync`) caps the frame rate to the display, saving power and heat.
@@ -50,7 +52,6 @@ Press F1 in `dev` builds to see the physics colliders.
 
 - Lower the render resolution and upscale (render to a smaller texture, or use Bevy's
   upscaling when it fits the art style).
-- Disable shadows entirely on `Low` for GPUs below the target.
 - Use `VisibilityRange` for distance-based LODs on large levels.
 - Compress textures to KTX2 (Basis Universal) and keep them at 1024² or less.
 - Replace trimesh colliders with convex hulls or primitives for dynamic objects.

@@ -120,3 +120,25 @@ Short, atomic commits on `main` with a bracketed tag: `[ADD]`, `[FIX]`, `[UPDATE
 The kinematic controller lives in `gf_character` and is driven only by `MoveIntent`.
 `gf_player` is a thin layer that turns input into intents and locomotion into animation, so
 NPCs, AI and networked characters reuse the exact same movement code.
+
+## 018 — Persistent settings, one RON file per group
+
+- **Alternatives:** a single settings file with every section, no persistence.
+- **Why:** each crate owns its settings resource and registers it with
+  `register_settings::<T>("name")`; `gf_settings` loads `<config dir>/game-foundation/name.ron`
+  at startup and rewrites it whenever the resource changes. One file per group avoids a
+  central type that knows every crate, and a corrupt file only resets that group.
+- **Location:** `%APPDATA%\game-foundation\` on Windows, `~/.config/game-foundation/` on Linux,
+  `~/Library/Application Support/game-foundation/` on macOS.
+
+## 019 — Graphics settings: preset plus individual options
+
+The Graphics tab offers a preset (Low, Medium, High) and individual options for shadows
+(Off, Low, Medium, High), anti-aliasing (Off, FXAA, MSAA 4x) and vsync. Choosing a preset
+overwrites the options; changing an option shows the preset as *Custom*. Only the options are
+stored, the preset is derived from them. Changes apply immediately.
+
+## 020 — Tabbed pause menu
+
+The pause menu has tabs (Game, Graphics). Every button carries a `MenuAction` component and
+a single system handles presses, so new tabs and options are data, not new systems.
