@@ -1,0 +1,16 @@
+[package]
+name = "gf_physics"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[features]
+debug = []
+
+[dependencies]
+bevy.workspace = true
+avian3d.workspace = true
+
+[lints]
+workspace = true
