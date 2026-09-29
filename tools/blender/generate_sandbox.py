@@ -122,9 +122,9 @@ def main() -> None:
     box("Wall", (0, 16, 1.5), (12, 0.5, 3), block)
 
     tunnel_x, tunnel_y = 0, -10
-    box("TunnelLeft", (tunnel_x - 1.25, tunnel_y, 0.675), (0.5, 4, 1.35), block)
-    box("TunnelRight", (tunnel_x + 1.25, tunnel_y, 0.675), (0.5, 4, 1.35), block)
-    box("TunnelRoof", (tunnel_x, tunnel_y, 1.55), (3, 4, 0.4), accent)
+    box("TunnelLeft", (tunnel_x - 1.25, tunnel_y, 0.725), (0.5, 4, 1.45), block)
+    box("TunnelRight", (tunnel_x + 1.25, tunnel_y, 0.725), (0.5, 4, 1.45), block)
+    box("TunnelRoof", (tunnel_x, tunnel_y, 1.65), (3, 4, 0.4), accent)
 
     spawn = bpy.data.objects.new("PlayerSpawn", None)
     spawn.empty_display_type = "ARROWS"
